@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Burhan e Azam Islamic Assistant</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0d8a53;        /* Islamic Green */
+            --secondary: #1e3799;      /* Islamic Blue */
+            --accent: #05773f;         /* Darker Green Accent */
+            --background: #f8f9fa;
+            --light-green: #e2f3ea;
+            --dark-green: #015c3b;
+            --light-blue: #d4e6f1;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--light-green) 0%, #ffffff 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-container {
+            height: calc(100vh - 240px);
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            overflow-y: auto;
+            padding: 1rem;
+            margin: 20px;
+            border-radius: 10px;
+        }
+
+        .message {
+            max-width: 80%;
+            animation: fadeIn 0.5s ease-out;
+            position: relative;
+            margin: 1rem 0;
+            padding: 10px 15px;
+        }
+
+        .user-message {
+            background: linear-gradient(135deg, var(--secondary) 0%, #1e3799 100%);
+            color: white;
+            border-radius: 18px 18px 0 18px;
+            margin-left: auto;
+        }
+
+        .bot-message {
+            background: linear-gradient(135deg, var(--primary) 0%, #05773f 100%);
+            color: white;
+            border-radius: 18px 18px 18px 0;
+        }
+
+        .quick-reply {
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            cursor: pointer;
+            padding: 8px 12px;
+            background: var(--secondary);
+            color: white;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            margin: 5px;
+        }
+
+        .quick-reply:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(13, 138, 83, 0.2);
+            border-color: var(--primary);
+        }
+
+        .logo-container {
+            width: 120px;
+            height: 120px;
+            margin: 10px auto;
+            position: relative;
+            overflow: hidden;
+            border-radius: 50%;
+            background-color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid var(--primary);
+        }
+
+        .logo-container img {
+            width: 80%;
+            height: 80%;
+            object-fit: contain;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            padding: 12px 16px;
+            background: var(--light-green);
+            border-radius: 18px;
+            margin: 10px;
+            animation: pulse 1.5s infinite;
+        }
+
+        .typing-indicator span {
+            height: 8px;
+            width: 8px;
+            background: var(--dark-green);
+            display: inline-block;
+            border-radius: 50%;
+            margin: 0 2px;
+            animation: bounce 1.5s infinite;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: .5;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        @keyframes bounce {
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .chat-input-container {
+            position: relative;
+            padding: 10px;
+        }
+
+        .send-button {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+        }
+
+        .send-button:hover {
+            background: var(--accent);
+            transform: translateY(-50%) scale(1.05);
+        }
+
+        .header-ornament {
+            width: 100%;
+            height: 30px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='20' viewBox='0 0 100 20'%3E%3Cpath d='M0,10 C30,20 70,0 100,10 L100,0 L0,0 Z' fill='%230d8a53'/%3E%3C/svg%3E");
+            background-repeat: repeat-x;
+            background-size: 100px 30px;
+        }
+
+        .footer-ornament {
+            width: 100%;
+            height: 30px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='20' viewBox='0 0 100 20'%3E%3Cpath d='M0,0 C30,10 70,10 100,0 L100,20 L0,20 Z' fill='%231e3799'/%3E%3C/svg%3E");
+            background-repeat: repeat-x;
+            background-size: 100px 30px;
+        }
+
+        .islamic-pattern {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.05;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cpath d='M0,0 L80,0 L80,80 L0,80 Z' fill='none' stroke='%230d8a53' stroke-width='1'/%3E%3Cpath d='M0,0 L80,80 M80,0 L0,80' fill='none' stroke='%230d8a53' stroke-width='1'/%3E%3Ccircle cx='40' cy='40' r='30' fill='none' stroke='%230d8a53' stroke-width='1'/%3E%3C/svg%3E");
+        }
+
+        .title-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .title-ornament {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin: 0 10px;
+        }
+
+        .arabic-greeting {
+            font-size: 1.5rem;
+            margin: 5px 0;
+            color: var(--dark-green);
+        }
+
+        @media (max-width: 768px) {
+            .chat-container {
+                padding: 10px;
+                margin: 10px;
+            }
+
+            .logo-container {
+                width: 80px;
+                height: 80px;
+            }
+
+            .message {
+                max-width: 90%;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="islamic-pattern"></div>
+    <div class="header-ornament"></div>
+    <div class="container mx-auto px-4 py-6 max-w-4xl">
+        <!-- Header -->
+        <div class="text-center mb-6">
+            <div class="logo-container mb-4">
+                <img src="/static/images/logo.png" alt="Burhan e Azam Logo" onerror="this.src='/api/placeholder/120/120'; this.onerror=null;">
+            </div>
+            <div class="title-container">
+                <h1 class="text-4xl font-bold text-gray-800 mb-2">Burhan e Azam</h1>
+                <p class="arabic-greeting">بسم الله الرحمن الرحيم</p>
+                <p class="text-gray-600">Chat with Gaby, your friendly Islamic assistant</p>
+            </div>
+        </div>
+
+        <!-- Chat Container -->
+        <div class="rounded-2xl shadow-2xl overflow-hidden bg-white relative">
+            <!-- Messages Area -->
+            <div id="chat-messages" class="chat-container overflow-y-auto p-4 space-y-4">
+                <!-- Messages will be inserted here -->
+            </div>
+
+            <!-- Typing Indicator -->
+            <div class="typing-indicator mx-4">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+
+            <!-- Quick Replies -->
+            <div id="quick-replies" class="p-4 bg-gray-50 border-t border-gray-200 flex flex-wrap justify-center">
+                <!-- Quick reply buttons will be inserted here -->
+            </div>
+
+            <!-- Input Area -->
+            <div class="p-4 border-t border-gray-200">
+                <form id="chat-form" class="chat-input-container">
+                    <input type="text" id="user-input"
+                        class="w-full px-6 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring focus:border-green-500 pr-16"
+                        placeholder="Type your message here...">
+                    <button type="submit" class="send-button">
+                        <i class="fas fa-paper-plane text-white"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="footer-ornament"></div>
+
+    <script>
+        const API_URL = 'http://localhost:7888';
+
+        // Initialize chat
+        async function initChat() {
+            try {
+                const response = await fetch(`${API_URL}/start`);
+                const data = await response.json();
+                appendMessage('bot', data['start chat']);
+                loadQuickReplies();
+            } catch (error) {
+                console.error('Error initializing chat:', error);
+                appendMessage('bot', 'Sorry, I had trouble connecting. Please try again later.');
+            }
+        }
+
+        // Load quick replies
+        function loadQuickReplies() {
+            const quickRepliesContainer = document.getElementById('quick-replies');
+            const questions = [
+                "I need prayer guidance",
+                "Join Burhan e Azam community",
+                "Connect with local services",
+                "Volunteer opportunities",
+                "Quran study resources",
+                "Islamic events calendar",
+                "Donations & charity info"
+            ];
+
+            quickRepliesContainer.innerHTML = questions.map(q => 
+                `<button 
+                    class="quick-reply text-sm hover:bg-blue-50 transition-all duration-300"
+                    onclick="handleQuickReply('${q}')"
+                >
+                    ${q}
+                </button>`
+            ).join('');
+        }
+
+        // Handle quick reply clicks
+        async function handleQuickReply(question) {
+            appendMessage('user', question);
+            showTypingIndicator();
+
+            try {
+                const response = await fetch(`${API_URL}/ask`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        query: question
+                    })
+                });
+                const data = await response.json();
+                hideTypingIndicator();
+                appendMessage('bot', formatResponse(data.response));
+            } catch (error) {
+                console.error('Error:', error);
+                hideTypingIndicator();
+                appendMessage('bot', 'I apologize, but I encountered an error. Please try again.');
+            }
+        }
+
+        // Format response
+        function formatResponse(response) {
+            if (typeof response === 'object') {
+                if (response.output_text) {
+                    return response.output_text;
+                }
+                if (response.contact) {
+                    return `For contact ${response.contact}`;
+                }
+                return JSON.stringify(response, null, 2);
+            }
+            return response;
+        }
+
+        // Append message
+        function appendMessage(sender, message) {
+            const chatContainer = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message p-4`;
+            messageDiv.textContent = message;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Show/hide typing indicator
+        function showTypingIndicator() {
+            document.querySelector('.typing-indicator').style.display = 'flex';
+        }
+
+        function hideTypingIndicator() {
+            document.querySelector('.typing-indicator').style.display = 'none';
+        }
+
+        // Handle form submission
+        document.getElementById('chat-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('user-input');
+            const message = input.value.trim();
+
+            if (message) {
+                appendMessage('user', message);
+                input.value = '';
+                showTypingIndicator();
+
+                try {
+                    const response = await fetch(`${API_URL}/ask`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            query: message
+                        })
+                    });
+                    const data = await response.json();
+                    hideTypingIndicator();
+                    appendMessage('bot', formatResponse(data.response));
+                } catch (error) {
+                    console.error('Error:', error);
+                    hideTypingIndicator();
+                    appendMessage('bot', 'I apologize, but I encountered an error. Please try again.');
+                }
+            }
+        });
+
+        // Initialize chat
+        window.addEventListener('load', initChat);
+    </script>
+</body>
+
+</html>
