@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attari Language Bot - Learn English & Arabic</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 10px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            text-align: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .logo-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .logo h1 {
+            color: #667eea;
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .level-selector {
+            padding: 8px 15px;
+            border: 2px solid #667eea;
+            border-radius: 25px;
+            background: white;
+            font-size: 14px;
+            font-weight: 600;
+            color: #667eea;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .level-selector:focus, .level-selector:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .clear-btn {
+            padding: 8px 15px;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .clear-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            overflow: hidden;
+        }
+
+        .messages-area {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: calc(100vh - 300px);
+            scrollbar-width: thin;
+            scrollbar-color: #667eea #f1f1f1;
+        }
+
+        .messages-area::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .messages-area::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .messages-area::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-message {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .user-message .message-content {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 20px 20px 5px 20px;
+            max-width: 80%;
+            position: relative;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .edit-btn {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #667eea;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            font-size: 12px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .user-message:hover .edit-btn {
+            display: flex;
+        }
+
+        .edit-btn:hover {
+            background: white;
+            transform: scale(1.1);
+        }
+
+        .bot-message .message-content {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            padding: 20px;
+            border-radius: 20px 20px 20px 5px;
+            max-width: 90%;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .language-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .language-tab {
+            padding: 8px 15px;
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .language-tab.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .language-content {
+            padding: 10px 0;
+            line-height: 1.6;
+            font-size: 15px;
+        }
+
+        .difficult-words {
+            margin-top: 15px;
+            padding: 15px;
+            background: linear-gradient(135deg, #ffeaa7, #fab1a0);
+            border-radius: 15px;
+            border-left: 4px solid #e17055;
+        }
+
+        .difficult-words h4 {
+            color: #2d3436;
+            margin-bottom: 10px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .word-item {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 10px;
+            font-size: 13px;
+        }
+
+        .learning-tip {
+            margin-top: 15px;
+            padding: 15px;
+            background: linear-gradient(135deg, #a8e6cf, #88d8a3);
+            border-radius: 15px;
+            border-left: 4px solid #00b894;
+        }
+
+        .learning-tip h4 {
+            color: #2d3436;
+            margin-bottom: 8px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .follow-up {
+            margin-top: 15px;
+            padding: 15px;
+            background: linear-gradient(135deg, #ddd6fe, #c4b5fd);
+            border-radius: 15px;
+            border-left: 4px solid #8b5cf6;
+        }
+
+        .follow-up h4 {
+            color: #2d3436;
+            margin-bottom: 8px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .input-area {
+            padding: 20px;
+            border-top: 1px solid rgba(102, 126, 234, 0.2);
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .input-container {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        #messageInput {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 16px;
+            resize: none;
+            min-height: 50px;
+            max-height: 120px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            outline: none;
+            background: white;
+        }
+
+        #messageInput:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .send-btn {
+            padding: 12px 18px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .welcome-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .welcome-message h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 24px;
+        }
+
+        .welcome-message p {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+        }
+
+        .feature-icon {
+            font-size: 32px;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .edit-mode {
+            background: #fff3cd !important;
+            border: 2px solid #ffc107 !important;
+        }
+
+        .edit-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            justify-content: flex-end;
+        }
+
+        .edit-save, .edit-cancel {
+            padding: 5px 15px;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .edit-save {
+            background: #28a745;
+            color: white;
+        }
+
+        .edit-cancel {
+            background: #dc3545;
+            color: white;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background: #28a745;
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.error {
+            background: #dc3545;
+        }
+
+        /* Mobile Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 5px;
+            }
+
+            .header {
+                padding: 15px;
+                margin-bottom: 10px;
+            }
+
+            .logo h1 {
+                font-size: 22px;
+            }
+
+            .logo-icon {
+                width: 45px;
+                height: 45px;
+                font-size: 20px;
+            }
+
+            .controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .level-selector, .clear-btn {
+                width: 100%;
+                text-align: center;
+            }
+
+            .messages-area {
+                padding: 15px;
+                max-height: calc(100vh - 250px);
+            }
+
+            .user-message .message-content,
+            .bot-message .message-content {
+                max-width: 95%;
+                padding: 12px 15px;
+            }
+
+            .language-tabs {
+                justify-content: center;
+            }
+
+            .language-tab {
+                flex: 1;
+                text-align: center;
+                min-width: 60px;
+            }
+
+            .input-area {
+                padding: 15px;
+            }
+
+            .input-container {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            #messageInput {
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+
+            .send-btn {
+                width: 100%;
+                border-radius: 25px;
+                height: 50px;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .feature-card {
+                padding: 15px;
+            }
+
+            .welcome-message {
+                padding: 20px 15px;
+            }
+
+            .welcome-message h2 {
+                font-size: 20px;
+            }
+
+            .edit-btn {
+                width: 30px;
+                height: 30px;
+                font-size: 14px;
+                top: -15px;
+                right: -15px;
+            }
+
+            .notification {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                transform: translateY(-100px);
+            }
+
+            .notification.show {
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logo {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .user-message .message-content,
+            .bot-message .message-content {
+                font-size: 14px;
+            }
+
+            .difficult-words, .learning-tip, .follow-up {
+                padding: 12px;
+                margin-top: 12px;
+            }
+
+            .word-item {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            }
+        }
+
+        /* Accessibility improvements */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* Animation for better UX */
+        .bounce {
+            animation: bounce 0.6s ease;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 60%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-10px);
+            }
+            80% {
+                transform: translateY(-5px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-comments" aria-hidden="true"></i>
+                </div>
+                <h1>Attari Language Bot</h1>
+            </div>
+            
+            <div class="controls">
+                <select id="learningLevel" class="level-selector" aria-label="Select Learning Level">
+                    <option value="beginner">🌱 Beginner</option>
+                    <option value="intermediate">🌿 Intermediate</option>
+                    <option value="expert">🌳 Expert</option>
+                </select>
+                
+                <button id="clearHistory" class="clear-btn" aria-label="Clear Chat History">
+                    <i class="fas fa-trash-alt" aria-hidden="true"></i> Clear Chat
+                </button>
+            </div>
+        </header>
+
+        <!-- Chat Container -->
+        <main class="chat-container">
+            <div id="messagesArea" class="messages-area">
+                <div class="welcome-message">
+                    <h2>🌟 Welcome to Attari Language Bot!</h2>
+                    <p>Your friendly companion for learning <strong>English</strong> and <strong>Arabic</strong></p>
+                    <p>Choose your level above and start chatting in English, Urdu, or Arabic!</p>
+                    
+                    <div class="features">
+                        <div class="feature-card">
+                            <div class="feature-icon">🗣️</div>
+                            <h3>Conversational Learning</h3>
+                            <p>Natural, engaging conversations</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">📱</div>
+                            <h3>Mobile Friendly</h3>
+                            <p>Perfect experience on any device</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">🧠</div>
+                            <h3>Smart Memory</h3>
+                            <p>Remembers your last 10 conversations</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">⚡</div>
+                            <h3>Adaptive Levels</h3>
+                            <p>Beginner to Expert progression</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                Thinking in multiple languages...
+            </div>
+
+            <!-- Input Area -->
+            <div class="input-area">
+                <div class="input-container">
+                    <div class="input-wrapper">
+                        <textarea 
+                            id="messageInput" 
+                            placeholder="Type your message in English, Urdu, or Arabic..."
+                            rows="1"
+                            aria-label="Message input"
+                        ></textarea>
+                    </div>
+                    <button id="sendBtn" class="send-btn" aria-label="Send Message">
+                        <i class="fas fa-paper-plane" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="notification" role="alert" aria-live="polite"></div>
+
+    <script>
+        class AttariLanguageBot {
+            constructor() {
+                this.sessionId = 'session_' + Date.now();
+                this.currentEditingMessage = null;
+                this.init();
+            }
+            
+
+            init() {
+                this.bindEvents();
+                this.autoResizeTextarea();
+                this.loadGreeting();
+            }
+
+            bindEvents() {
+                // Send message events
+                document.getElementById('sendBtn').addEventListener('click', () => this.sendMessage());
+                document.getElementById('messageInput').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage();
+                    }
+                });
+
+                // Clear history
+                document.getElementById('clearHistory').addEventListener('click', () => this.clearHistory());
+
+                // Auto-resize textarea
+                document.getElementById('messageInput').addEventListener('input', () => this.autoResizeTextarea());
+            }
+
+            autoResizeTextarea() {
+                const textarea = document.getElementById('messageInput');
+                textarea.style.height = 'auto';
+                textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+            }
+
+            // async loadGreeting() {
+            //     try {
+            //         const API_BASE = 'http://127.0.0.1:3000'; // Easily change later
+            //         const response = await fetch(`${API_BASE}/start`);
+            //         const data = await response.json();
+                    
+            //         if (data.status === "true") {
+            //             this.displayBotMessage(data.greeting);
+            //         }
+            //     } catch (error) {
+            //         console.error('Error loading greeting:', error);
+            //         this.showNotification('Failed to load greeting', 'error');
+            //     }
+            // }
+
+async loadGreeting() {
+    try {
+        console.log('Fetching greeting...');
+        const response = await fetch('/start');
+        const data = await response.json();
+        console.log('Response data:', data);
+
+        if (data.status === "true") {
+            // Pass the entire greeting object as-is
+            this.displayBotMessage(data.greeting);
+        } else {
+            console.log('Status check failed:', data.status);
+        }
+    } catch (error) {
+        console.error('Error loading greeting:', error);
+        this.showNotification('Failed to load greeting', 'error');
+    }
+}
+            async sendMessage(isEdit = false, originalMessage = null) {
+                const messageInput = document.getElementById('messageInput');
+                const message = messageInput.value.trim();
+                
+                if (!message) return;
+
+                if (!isEdit) {
+                    this.displayUserMessage(message);
+                }
+
+                messageInput.value = '';
+                this.autoResizeTextarea();
+                this.toggleLoading(true);
+
+                try {
+                    const response = await fetch('/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            message: message,
+                            level: document.getElementById('learningLevel').value,
+                            session_id: this.sessionId
+                        })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.response) {
+                        if (isEdit && originalMessage) {
+                            this.replaceUserMessage(originalMessage, message);
+                        }
+                        this.displayBotMessage(data.response);
+                    } else {
+                        throw new Error(data.error || 'Unknown error occurred');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    this.showNotification('Failed to send message. Please try again.', 'error');
+                } finally {
+                    this.toggleLoading(false);
+                }
+            }
+
+            displayUserMessage(message) {
+                const messagesArea = document.getElementById('messagesArea');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message user-message';
+                messageDiv.innerHTML = `
+                    <div class="message-content">
+                        <button class="edit-btn" onclick="bot.editMessage(this)" aria-label="Edit message">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <span class="message-text">${this.escapeHtml(message)}</span>
+                    </div>
+                `;
+                
+                messagesArea.appendChild(messageDiv);
+                this.scrollToBottom();
+                
+                // Remove welcome message if present
+                const welcomeMessage = messagesArea.querySelector('.welcome-message');
+                if (welcomeMessage) {
+                    welcomeMessage.remove();
+                }
+            }
+
+            displayBotMessage(response) {
+                const messagesArea = document.getElementById('messagesArea');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message bot-message';
+                
+                let difficultWordsHtml = '';
+                if (response.difficult_words && response.difficult_words.length > 0) {
+                    difficultWordsHtml = `
+                        <div class="difficult-words">
+                            <h4><i class="fas fa-book" aria-hidden="true"></i> Difficult Words</h4>
+                            ${response.difficult_words.map(word => `
+                                <div class="word-item">
+                                    <strong>${word.language_of_word}: ${word.word}</strong><br>
+                                    <span>اردو: ${word.meaning_in_urdu}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
+                messageDiv.innerHTML = `
+                    <div class="message-content">
+                        <div class="language-tabs">
+                            <div class="language-tab active" data-lang="english">EN</div>
+                            <div class="language-tab" data-lang="urdu">UR</div>
+                            <div class="language-tab" data-lang="arabic">AR</div>
+                        </div>
+                        
+                        <div class="language-content" id="content-english">
+                            ${this.escapeHtml(response.translations.english)}
+                        </div>
+                        <div class="language-content" id="content-urdu" style="display:none; direction: rtl;">
+                            ${this.escapeHtml(response.translations.urdu)}
+                        </div>
+                        <div class="language-content" id="content-arabic" style="display:none; direction: rtl;">
+                            ${this.escapeHtml(response.translations.arabic)}
+                        </div>
+                        
+                        ${difficultWordsHtml}
+                        
+                        ${response.learning_tip ? `
+                            <div class="learning-tip">
+                                <h4><i class="fas fa-lightbulb" aria-hidden="true"></i> Learning Tip</h4>
+                                <p>${this.escapeHtml(response.learning_tip)}</p>
+                            </div>
+                        ` : ''}
+                        
+                        ${response.follow_up_question ? `
+                            <div class="follow-up">
+                                <h4><i class="fas fa-question-circle" aria-hidden="true"></i> Continue the Conversation</h4>
+                                <p>${this.escapeHtml(response.follow_up_question)}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                
+                messagesArea.appendChild(messageDiv);
+                this.bindLanguageTabs(messageDiv);
+                this.scrollToBottom();
+            }
+
+            bindLanguageTabs(messageDiv) {
+                const tabs = messageDiv.querySelectorAll('.language-tab');
+                tabs.forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        const lang = tab.dataset.lang;
+                        
+                        // Update active tab
+                        tabs.forEach(t => t.classList.remove('active'));
+                        tab.classList.add('active');
+                        
+                        // Show corresponding content
+                        const contents = messageDiv.querySelectorAll('.language-content');
+                        contents.forEach(content => {
+                            content.style.display = content.id === `content-${lang}` ? 'block' : 'none';
+                        });
+                    });
+                });
+            }
+
+            editMessage(button) {
+                const messageContent = button.closest('.message-content');
+                const messageText = messageContent.querySelector('.message-text');
+                const originalText = messageText.textContent;
+                
+                this.currentEditingMessage = originalText;
+                
+                messageContent.classList.add('edit-mode');
+                messageText.innerHTML = `
+                    <textarea class="edit-textarea" style="width: 100%; min-height: 60px; padding: 10px; border: none; border-radius: 10px; font-family: inherit; resize: vertical;">${originalText}</textarea>
+                    <div class="edit-controls">
+                        <button class="edit-save" onclick="bot.saveEdit(this)">
+                            <i class="fas fa-check"></i> Save
+                        </button>
+                        <button class="edit-cancel" onclick="bot.cancelEdit(this, '${this.escapeHtml(originalText)}')">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
+                `;
+                
+                const textarea = messageContent.querySelector('.edit-textarea');
+                textarea.focus();
+                textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+            }
+
+            saveEdit(button) {
+                const messageContent = button.closest('.message-content');
+                const textarea = messageContent.querySelector('.edit-textarea');
+                const newMessage = textarea.value.trim();
+                
+                if (newMessage && newMessage !== this.currentEditingMessage) {
+                    this.sendMessage(true, this.currentEditingMessage);
+                    document.getElementById('messageInput').value = newMessage;
+                } else {
+                    this.cancelEdit(button, this.currentEditingMessage);
+                }
+            }
+
+            cancelEdit(button, originalText) {
+                const messageContent = button.closest('.message-content');
+                const messageText = messageContent.querySelector('.message-text');
+                
+                messageContent.classList.remove('edit-mode');
+                messageText.innerHTML = this.escapeHtml(originalText);
+                this.currentEditingMessage = null;
+            }
+
+            replaceUserMessage(originalMessage, newMessage) {
+                const userMessages = document.querySelectorAll('.user-message .message-text');
+                for (let messageEl of userMessages) {
+                    if (messageEl.textContent.trim() === originalMessage) {
+                        messageEl.textContent = newMessage;
+                        messageEl.closest('.message-content').classList.remove('edit-mode');
+                        break;
+                    }
+                }
+            }
+
+            async clearHistory() {
+                if (!confirm('Are you sure you want to clear the chat history?')) return;
+                
+                try {
+                    const response = await fetch('/clear-history', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ session_id: this.sessionId })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.status === 'success') {
+                        document.getElementById('messagesArea').innerHTML = `
+                            <div class="welcome-message">
+                                <h2>🌟 Fresh Start!</h2>
+                                <p>Chat history cleared. Ready for new conversations!</p>
+                                <p>What would you like to learn in <strong>English</strong> or <strong>Arabic</strong> today?</p>
+                            </div>
+                        `;
+                        
+                        this.showNotification('Chat history cleared successfully!');
+                        this.sessionId = 'session_' + Date.now(); // New session
+                    }
+                } catch (error) {
+                    console.error('Error clearing history:', error);
+                    this.showNotification('Failed to clear history', 'error');
+                }
+            }
+
+            toggleLoading(show) {
+                const loading = document.getElementById('loading');
+                const sendBtn = document.getElementById('sendBtn');
+                
+                if (show) {
+                    loading.classList.add('show');
+                    sendBtn.disabled = true;
+                } else {
+                    loading.classList.remove('show');
+                    sendBtn.disabled = false;
+                }
+            }
+
+            scrollToBottom() {
+                const messagesArea = document.getElementById('messagesArea');
+                messagesArea.scrollTop = messagesArea.scrollHeight;
+            }
+
+            showNotification(message, type = 'success') {
+                const notification = document.getElementById('notification');
+                notification.textContent = message;
+                notification.className = `notification ${type} show`;
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 3000);
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        }
+
+        // Initialize the bot when page loads
+        let bot;
+        document.addEventListener('DOMContentLoaded', () => {
+            bot = new AttariLanguageBot();
+        });
+
+        // Add some fun interactions
+        document.addEventListener('DOMContentLoaded', () => {
+            // Add bounce effect to logo on click
+            document.querySelector('.logo').addEventListener('click', function() {
+                this.classList.add('bounce');
+                setTimeout(() => this.classList.remove('bounce'), 600);
+            });
+            
+            // Add keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                // Ctrl/Cmd + K to focus on input
+                if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                    e.preventDefault();
+                    document.getElementById('messageInput').focus();
+                }
+                
+                // Ctrl/Cmd + L to clear chat
+                if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+                    e.preventDefault();
+                    bot.clearHistory();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

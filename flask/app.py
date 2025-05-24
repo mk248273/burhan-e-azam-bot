@@ -1,191 +1,202 @@
 import os
-from PyPDF2 import PdfReader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from flask import Flask, request, jsonify, render_template
 import google.generativeai as genai
-from langchain.vectorstores import FAISS
 from langchain_groq import ChatGroq
-from langchain.chains.question_answering import load_qa_chain
 from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
 import random
 from flask_cors import CORS
+import json
+import re
+from datetime import datetime
 
-# Load environment variables
 load_dotenv()
 
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")  # Load from .env file for security
-genai.configure(api_key=GOOGLE_API_KEY)
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+GROQ_API_KEY = "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"
 
-# Flask setup
+if GOOGLE_API_KEY:
+    genai.configure(api_key=GOOGLE_API_KEY)
+
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+CORS(app)
 
-# Helper functions
-def get_pdf_text(pdf):
-    text = ""
-    pdf_reader = PdfReader(pdf)
-    for page in pdf_reader.pages:
-        text += page.extract_text()
-    return text
+# In-memory storage for chat histories
+chat_histories = {}
 
-def get_text_chunks(text):
-    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=500)
-    chunks = splitter.split_text(text)
-    return chunks  # list of strings
-
-def get_vector_store(chunks):
-    # Create directory if it doesn't exist
-    os.makedirs("faiss_index", exist_ok=True)
+class ChatHistoryManager:
+    def __init__(self, max_history=10):
+        self.max_history = max_history
     
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")  # type: ignore
-    vector_store = FAISS.from_texts(chunks, embedding=embeddings)
-    vector_store.save_local("faiss_index")
-    return vector_store
+    def add_message(self, session_id, message, response):
+        if session_id not in chat_histories:
+            chat_histories[session_id] = []
+        chat_histories[session_id].append({
+            'timestamp': datetime.now().isoformat(),
+            'user_message': message,
+            'bot_response': response
+        })
+        if len(chat_histories[session_id]) > self.max_history:
+            chat_histories[session_id] = chat_histories[session_id][-self.max_history:]
+    
+    def get_recent_context(self, session_id, target_language, num_messages=3):
+        if session_id not in chat_histories:
+            return ""
+        recent = chat_histories[session_id][-num_messages:]
+        context = ""
+        target_language_lower = target_language.lower()
+        for chat in recent:
+            context += f"User: {chat['user_message']}\n"
+            bot_resp = chat['bot_response'].get('translations', {}).get(target_language_lower, '')
+            context += f"Bot: {bot_resp}\n"
+        return context
+    
+    def clear_history(self, session_id):
+        if session_id in chat_histories:
+            chat_histories[session_id] = []
 
-def get_conversational_chain():
-    prompt_template = """
-System Instructions for Burhan e Azam Assistant:
+history_manager = ChatHistoryManager()
 
-1. Role: You are the official virtual assistant for Burhan e Azam.
-2. Response Rule: Answer ONLY using information from the provided context.
-3. Knowledge Limit: If information isn't in context, say "I apologize, this information is not available in the current context."
-4. Tone: Maintain warm, professional, and empathetic communication.
-5. Prohibited: No URLs, no assumptions, no personal opinions, no external information.
-6. Quality: Ensure responses are grammatically correct and professionally written.
-7. Privacy: Protect sensitive information and maintain confidentiality.
-8. Support: For unavailable information, direct users to the Burhan e Azam office.
-9. Values: Every response should reflect Burhan e Azam values of faith, community, and service.\n\n
-    Context:\n {context}\n
-    Question: \n{question}?\n
+def get_prompt_template():
+    prompt_template_str = """
+You are 'Attari Language Bot', a friendly, conversational chatbot teaching {target_language} with explanations in Roman Urdu.
+Your role:
+- Speak only in {target_language}.
+- Use Roman Urdu to explain difficult words, give meanings and grammar tips.
+- Detect and correct user's mistakes gently, and explain corrections in Roman Urdu.
+- If the user speaks in any language other than {target_language}, politely tell them (in {target_language} and in Roman Urdu) to please speak only in {target_language}.
+- Adapt language complexity to {learning_level}:
+   * Beginner: Simple sentences, easy vocab, daily life questions.
+   * Intermediate: More complex sentences, cultural context.
+   * Expert: Advanced grammar, idioms, sophisticated topics.
+- Continue conversation naturally, ask follow-up questions in {target_language}.
 
-    Answer:
-    """
+Previous conversation context:
+{chat_context}
 
-    model = ChatGroq(
-        api_key="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",
-        model_name="llama-3.3-70b-versatile",
+User said:
+{user_input}
+
+Respond strictly in this JSON format:
+
+{{
+  "original_language": "{target_language}",
+  "translations": {{
+    "{target_language_lower}": "Chatty, friendly {target_language} reply or question or a polite reminder to use only {target_language}.",
+    "urdu": "Roman Urdu main wazaahat aur tarjuma, mushkil alfaaz ki tafseel ya user ko sirf {target_language} istemal karne ki darkhwast"
+  }},
+  "difficult_words": [
+    {{
+      "language_of_word": "{target_language}",
+      "word": "challenging_word_from_response",
+      "meaning_in_urdu": "Is lafz ka matlab aur istemal ki misaal"
+    }}
+  ],
+  "learning_tip": "Ek madadgar mashwara {learning_level} satah ke liye.",
+  "follow_up_question": "Ek dilchasp sawal guftagu ko aage barhane ke liye."
+}}
+"""
+    return PromptTemplate(
+        template=prompt_template_str,
+        input_variables=["user_input", "learning_level", "chat_context", "target_language", "target_language_lower"]
     )
 
-    prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
 
-    chain = load_qa_chain(llm=model, chain_type="stuff", prompt=prompt)
-    return chain
-
-def user_input(user_question):
+def process_user_input(user_input, learning_level, target_language, session_id):
     try:
-        # Use absolute path for more reliability
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        index_path = os.path.join(base_dir, "faiss_index")
+        model = ChatGroq(
+            api_key=GROQ_API_KEY,
+            model_name="llama-3.3-70b-versatile",
+            temperature=0.8,
+            max_tokens=1500
+        )
+        prompt_template = get_prompt_template()
         
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-        new_db = FAISS.load_local(index_path, embeddings, allow_dangerous_deserialization=True)
-        docs = new_db.similarity_search(user_question)
-        docs = docs[:10]
-        chain = get_conversational_chain()
-        response = chain({"input_documents": docs, "question": user_question}, return_only_outputs=True)
-        # Ensure response format matches what frontend expects
-        return {"output_text": response["output_text"]}
+        chat_context = history_manager.get_recent_context(session_id, target_language)
+        
+        prompt_text = prompt_template.format(
+            user_input=user_input,
+            learning_level=learning_level,
+            chat_context=chat_context,
+            target_language=target_language,
+            target_language_lower=target_language.lower()
+        )
+        
+        response = model.invoke(prompt_text)
+        response_text = getattr(response, 'content', str(response))
+        
+        # Extract JSON object from the response
+        match = re.search(r'\{.*\}', response_text, re.DOTALL)
+        if match:
+            json_str = match.group(0)
+            parsed = json.loads(json_str)
+            history_manager.add_message(session_id, user_input, parsed)
+            return parsed
+        else:
+            # fallback if JSON not found
+            fallback = fallback_response(user_input, learning_level, target_language, session_id)
+            return fallback
     except Exception as e:
-        # Return a user-friendly error message
-        return {"output_text": f"I'm having trouble accessing my knowledge base. Please make sure documents have been uploaded first. Technical details: {str(e)}"}
+        print(f"Error: {e}")
+        return error_response()
 
-# Fixed greetings with simple ASCII characters
-greetings = {
-    1: "As-salamu alaykum! I'm Gaby, your friendly assistant here at Burhan E Azam. How can I serve you today?",
-    2: "Welcome to Burhan E Azam! I'm Gaby, here to help with anything you need. Let's get started!",
-    3: "As-salamu alaykum! I'm Gaby, your guide to everything at Burhan E Azam. What's on your heart today?",
-    4: "As-salamu alaykum, friend! I'm Gaby, here at Burhan E Azam to walk this journey with you. How can I support you today?",
-    5: "As-salamu alaykum! I'm Gaby - think of me as Burhan E Azam's friendly helper. What's on your mind today?",
-    6: "As-salamu alaykum! I'm Gaby from Burhan E Azam. If you've got questions or need help, I'm all ears!",
-    7: "As-salamu alaykum! I'm Gaby, your Burhan E Azam assistant. Let's make this easy - what can I help with?",
-    8: "As-salamu alaykum! Whether you need prayer, info about our services, or just a friendly chat, I'm here for you at Burhan E Azam.",
-    9: "As-salamu alaykum, friend! Looking to connect at Burhan E Azam? I'd love to help you find your place!",
-    10: "As-salamu alaykum! Welcome to Burhan E Azam! I'm Gaby, and I'd love to help you feel at home. How can I assist?",
-    11: "As-salamu alaykum! I'm Gaby from Burhan E Azam. You're in the right place. What can I help you with today?"
-}
+def fallback_response(user_input, learning_level, target_language, session_id):
+    fallback = {
+        "original_language": target_language,
+        "translations": {
+            target_language.lower(): "Sorry, I had a little trouble understanding. Can you please try again?",
+            "urdu": "معذرت، مجھے سمجھنے میں تھوڑی مشکل ہوئی۔ کیا آپ دوبارہ کوشش کریں گے؟"
+        },
+        "difficult_words": [],
+        "learning_tip": "صبر اور مشق سے زبان پر عبور حاصل ہوتا ہے۔ کوشش جاری رکھیں۔",
+        "follow_up_question": f"Let's try a simple question: What's your favorite word in {target_language}?"
+    }
+    history_manager.add_message(session_id, user_input, fallback)
+    return fallback
+
+def error_response():
+    return {
+        "original_language": "System",
+        "translations": {
+            "english": "Oops! Something went wrong. Let's keep practicing!",
+            "urdu": "اوہ! کچھ غلط ہو گیا۔ چلو مشق جاری رکھتے ہیں!",
+            "arabic": "عفواً! حدث خطأ ما. لنواصل الممارسة!"
+        },
+        "difficult_words": [],
+        "learning_tip": "Every mistake is a step forward in learning!",
+        "follow_up_question": "Can you tell me a simple sentence you know in English or Arabic?"
+    }
 
 @app.route('/')
-def home():
+def index():
     return render_template('index.html')
 
-@app.route('/start', methods=['GET'])
-def get_random_greeting():
-    start_message = random.choice(list(greetings.values()))
-    return jsonify({"status": "true", "start chat": start_message}), 200
-
-@app.route('/health', methods=['GET'])
-def health_check():
-    return jsonify({"status": "API is running"}), 200
-
-# Add a route to upload PDF files and create the index
-@app.route('/upload', methods=['POST'])
-def upload_file():
-    if 'file' not in request.files:
-        return jsonify({"error": "No file part"}), 400
-    
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
-    
-    if file and file.filename.endswith('.pdf'):
-        try:
-            text = get_pdf_text(file)
-            chunks = get_text_chunks(text)
-            get_vector_store(chunks)
-            return jsonify({"message": "Document processed and index created successfully"}), 200
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-    else:
-        return jsonify({"error": "Only PDF files are supported"}), 400
-
-@app.route('/ask', methods=['POST'])
-def ask_question():
+@app.route('/chat', methods=['POST'])
+def chat():
     data = request.get_json()
-    user_question = data.get('query')
+    user_input = data.get('message', '').strip()
+    learning_level = data.get('level', 'beginner').strip().lower()
+    target_language = data.get('language', 'English').strip()
+    session_id = data.get('session_id', 'default')
 
-    if not user_question:
-        return jsonify({"error": "No query provided"}), 400
-    
-    # Check if index exists before proceeding
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    index_path = os.path.join(base_dir, "faiss_index", "index.faiss")
-    
-    if not os.path.exists(index_path):
-        return jsonify({
-            "response": {
-                "output_text": "I don't have any knowledge yet. Please upload documents first by using the /upload endpoint."
-            }
-        }), 200
-    
-    try:
-        response = user_input(user_question)
-        return jsonify({"response": response})
-    except Exception as e:
-        return jsonify({
-            "response": {
-                "output_text": f"I encountered an error while processing your question. Please try again later. Error: {str(e)}"
-            }
-        }), 200  # Return 200 with error message in response for better UX
+    if not user_input:
+        return jsonify({"error": "Message is empty"}), 400
 
-# For debugging and development only
-@app.route('/init-dummy-data', methods=['GET'])
-def init_dummy_data():
-    """Initialize with some dummy data for testing purposes"""
-    try:
-        dummy_text = """
-        Burhan e Azam is a community center dedicated to Islamic education and worship.
-        We offer daily prayer services, Quran study classes, and community events.
-        Our mission is to foster a sense of faith, community, and service among all members.
-        We are located at 123 Islamic Way, with services starting at 5 AM daily.
-        For any questions, please contact our office at info@burhanazam.org or call 555-123-4567.
-        """
-        chunks = get_text_chunks(dummy_text)
-        get_vector_store(chunks)
-        return jsonify({"message": "Dummy data initialized successfully"}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    if learning_level not in ['beginner', 'intermediate', 'expert']:
+        return jsonify({"error": "Invalid learning level"}), 400
+
+    if target_language not in ['English', 'Arabic']:
+        return jsonify({"error": "Invalid language selected"}), 400
+
+    response = process_user_input(user_input, learning_level, target_language, session_id)
+    return jsonify({"response": response})
+
+@app.route('/clear-history', methods=['POST'])
+def clear_history():
+    data = request.get_json()
+    session_id = data.get('session_id', 'default')
+    history_manager.clear_history(session_id)
+    return jsonify({"message": "History cleared"}), 200
 
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0')
+    app.run(debug=True, port=5000)
